@@ -1,13 +1,15 @@
-import mysql from 'mysql2';
-import dotenv from 'dotenv';
+import mysql from "mysql2";
+import dotenv from "dotenv";
 
 dotenv.config();
-const pool = mysql.createPool({
+const pool = mysql
+  .createPool({
     host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DB
-}).promise();
+    database: process.env.MYSQL_DB,
+  })
+  .promise();
 
 const createDatabase = async () => {
     const dropdb = await pool.query('DROP DATABASE IF EXISTS ??', [process.env.MYSQL_DB]);
@@ -74,20 +76,6 @@ const createDatabase = async () => {
     `);
 };
 
-const getStations = async () =>{   
-    try{
-        const [ data ] = await pool.query(`SELECT * FROM stations;`);
-        return {
-            data,
-            error: null
-        }
-    } catch(error){
-        return {
-            data: null,
-            error: error.code
-        }
-    }
-}
 
 const getWallet = async (wallet_id) =>{
     try{
@@ -110,24 +98,48 @@ const getWallet = async (wallet_id) =>{
     }
 }
 
-const insertUser = async (user_id, user_name, balance) =>{
-    try{
-        const [ { insertId } ] = await pool.query(`INSERT INTO users VALUES(?, ?, ?);`,[user_id, user_name, balance]);
-        const [ users ] = await pool.query(`SELECT * FROM users WHERE user_id = ? ;`, [ insertId ]);
-        return {
-            user: users[0],
-            error: null
-        }
-    } catch(error){
-        return {
-            user: null,
-            error: error.code
-        }
-    }
-}
+const getStations = async () => {
+  try {
+    const [data] = await pool.query(`SELECT * FROM stations;`);
+    return {
+      data,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      data: null,
+      error: error.code,
+    };
+  }
+};
+
+const getTrainStops = async (stationId) => {
+  try {
+    const [data] = await pool.query(
+      `
+              SELECT train_stops.train_id, arrival_time, departure_time
+              FROM train_stops
+              JOIN trains ON train_stops.train_id = trains.train_id
+              WHERE station_id = ?
+              ORDER BY IFNULL(departure_time, '23:59') ASC, IFNULL(arrival_time, '23:59') ASC, trains.train_id ASC;
+          `,
+      [stationId]
+    );
+    return {
+      data,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      data: null,
+      error: error.code,
+    };
+  }
+};
 
 export {
-    getStations,
-    getWallet,
-    insertUser
-}
+  createDatabase,
+  getStations,
+  getTrainStops,
+  getWallet
+};
