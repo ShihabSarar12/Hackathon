@@ -12,8 +12,6 @@ const pool = mysql.createPool({
 const createDatabase = async () => {
     const dropdb = await pool.query('DROP DATABASE IF EXISTS ??', [process.env.MYSQL_DB]);
     const createdb = await pool.query('CREATE DATABASE IF NOT EXISTS ??', [process.env.MYSQL_DB]);
-    
-    // Create stations table
     const stations = await pool.query(`
         CREATE TABLE stations (
             station_id INT NOT NULL AUTO_INCREMENT,
@@ -23,8 +21,6 @@ const createDatabase = async () => {
             PRIMARY KEY (station_id)
         )
     `);
-    
-    // Create users table
     const users = await pool.query(`
         CREATE TABLE users (
             user_id INT NOT NULL AUTO_INCREMENT,
@@ -33,8 +29,6 @@ const createDatabase = async () => {
             PRIMARY KEY (user_id)
         )
     `);
-    
-    // Create wallets table
     const wallets = await pool.query(`
         CREATE TABLE wallets (
             wallet_id INT NOT NULL AUTO_INCREMENT,
@@ -44,8 +38,6 @@ const createDatabase = async () => {
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
-    
-    // Create trains table
     const trains = await pool.query(`
         CREATE TABLE trains (
             train_id INT NOT NULL AUTO_INCREMENT,
@@ -54,8 +46,6 @@ const createDatabase = async () => {
             PRIMARY KEY (train_id)
         )
     `);
-    
-    // Create tickets table
     const tickets = await pool.query(`
         CREATE TABLE tickets (
             ticket_id INT NOT NULL AUTO_INCREMENT,
@@ -69,8 +59,6 @@ const createDatabase = async () => {
             FOREIGN KEY (station_to) REFERENCES stations(station_id) ON DELETE CASCADE
         )
     `);
-    
-    // Create train_stops table
     const train_stops = await pool.query(`
         CREATE TABLE train_stops (
             stop_id INT NOT NULL AUTO_INCREMENT,
@@ -84,8 +72,6 @@ const createDatabase = async () => {
             FOREIGN KEY (station_id) REFERENCES stations(station_id) ON DELETE CASCADE
         )
     `);
-    
-    // Optionally, you can check for errors and handle them
 };
 
 const getStations = async () =>{   
@@ -106,6 +92,12 @@ const getStations = async () =>{
 const getWallet = async (wallet_id) =>{
     try{
         const [ data ] = await pool.query(`SELECT * FROM wallets INNER JOIN users ON wallets.user_id = users.user_id WHERE wallet_id = ?;`, [ wallet_id ]);
+        if(data.length === 0){
+            return {
+                data: null,
+                error: null
+            }
+        }
         return {
             data,
             error: null

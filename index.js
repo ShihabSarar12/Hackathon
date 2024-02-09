@@ -37,17 +37,23 @@ app.get('api/stations/:station_id/trains', async (req, res) =>{
     //TODO: have to store datetime and sort in asc on dept time if same then asc on arrv time
 });
 
-app.get('api/wallets/:wallet_id', async (req, res) =>{
-    const { wallet_id } = req.params;
-    const { data, error } = await getWallet(wallet_id);
+app.get('/api/wallets/:wallet_ID', async (req, res) =>{
+    const { wallet_ID } = req.params;
+    const { data, error } = await getWallet(wallet_ID);
     if(!data){
         res.status(404).json({
-            message: `wallet with id: ${wallet_id} was not found`
+            message: `wallet with id: ${wallet_ID} was not found`
         });
         return;
     }
+    const { wallet_id, user_id, balance, user_name } = data[0];
     res.status(200).json({
-        data
+        wallet_id,
+        wallet_balance: balance,
+        wallet_user: {
+            user_id,
+            user_name
+        }
     });
     return;
 });
