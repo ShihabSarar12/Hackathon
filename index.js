@@ -26,26 +26,26 @@ app.get('/api/stations', async (req, res) =>{
 
 app.get('/api/stations/:station_id/trains', async (req, res) => {
     const { station_id } = req.params;
-
+  
     try {
-        const { data, error } = await getTrainStops(station_id);
-
-        if (error) {
-            res.status(500).json({
-                error: 'Internal Server Error',
-            });
-            return;
-        }
-
-        res.status(200).json({
-            station_id,
-            trains: data,
+      const { data, error } = await getTrainStops(station_id);
+  
+      if (!data || data.length === 0) {
+        res.status(404).json({
+          message: `station with id: ${station_id} was not found`,
         });
+        return;
+      }
+  
+      res.status(200).json({
+        station_id,
+        trains: data,
+      });
     } catch (error) {
-        console.error('Error fetching train stops:', error);
-        res.status(500).json({ error: 'Internal Server Error'});
+      console.error('Error fetching train stops:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+  });
 
 app.get('/api/wallets/:wallet_ID', async (req, res) =>{
     const { wallet_ID } = req.params;
@@ -68,10 +68,21 @@ app.get('/api/wallets/:wallet_ID', async (req, res) =>{
     return;
 });
 
-app.put('/api/wallets/:wallet_ID', async (req, res) =>{
-    const { wallet_ID } = req.params;
+app.put('/api/wallets/:wallet_id', async (req, res) => {
+    const { wallet_id } = req.params;
     const { recharge } = req.body;
-    const { data, error } = await updateBalance(recharge, wallet_ID);
+    const { data, error } = await updateBalance(recharge, wallet_id);
+
+    if (error) {
+        res.status(500).json({
+            error: 'Internal Server Error',
+        });
+        return;
+    }
+
+    res.status(200).json({
+        message: 'Balance updated successfully',
+    });
 });
 
 app.listen(port, () =>{

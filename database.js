@@ -79,7 +79,8 @@ const createDatabase = async () => {
 
 const getWallet = async (wallet_id) =>{
     try{
-        const [ data ] = await pool.query(`SELECT * FROM wallets INNER JOIN users ON wallets.user_id = users.user_id WHERE wallet_id = ?;`, [ wallet_id ]);
+        const [ data ] = await pool.query(`SELECT * FROM wallets INNER JOIN users ON wallets.user_id = users.user_id
+             WHERE wallet_id = ${wallet_id};`);
         if(data.length === 0){
             return {
                 data: null,
@@ -113,20 +114,25 @@ const getStations = async () => {
   }
 };
 
-const updateBalance = async (recharge, wallet_id) =>{
-    try {
-        const [data] = await pool.query(`UPDATE wallets SET balance = balance + ? WHERE wallet_id = ?;`, [recharge, wallet_id]);
-        return {
-          data,
-          error: null,
-        };
-      } catch (error) {
-        return {
-          data: null,
-          error: error.code,
-        };
-      }
-}
+const updateBalance = async (recharge, wallet_id) => {
+  try {
+    const [currentBalance] = await pool.query(`SELECT balance FROM wallets WHERE wallet_id = ?;`, [wallet_id]);
+    const newBalance = currentBalance[0].balance + recharge;
+
+    const [data] = await pool.query(`UPDATE wallets SET balance = ? WHERE wallet_id = ?;`, [newBalance, wallet_id]);
+
+    return {
+      data,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      data: null,
+      error: error.code,
+    };
+  }
+};
+
 
 const getTrainStops = async (stationId) => {
   try {
