@@ -1,7 +1,8 @@
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { getStations, getWallet } from './database.js';
+import { getStations, getWallet,getTrainStopsData, getTrainsData,getTrainStops} from './database.js';
 
 dotenv.config();
 const app = express();
@@ -13,6 +14,7 @@ const initializeDatabase = async () =>{
     const response = await createDatabase();
 }
 
+
 app.get('/api/stations', async (req, res) =>{
     const { data, error } = await getStations();
     res.status(200).json({
@@ -21,10 +23,46 @@ app.get('/api/stations', async (req, res) =>{
     return;
 });
 
-app.get('api/stations/:station_id/trains', async (req, res) =>{
+app.get('/api/train_stops', async (req, res) => {
+    const { data, error } = await getTrainStopsData();
+    res.status(200).json({
+      train_stops: data,
+      error,
+    });
+  });
+  
+  app.get('/api/trains', async (req, res) => {
+    const { data, error } = await getTrainsData();
+    res.status(200).json({
+      trains: data,
+      error,
+    });
+  });
+
+
+app.get('/api/stations/:station_id/trains', async (req, res) => {
     const { station_id } = req.params;
-    //TODO: have to store datetime and sort in asc on dept time if same then asc on arrv time
+
+    try {
+        const { data, error } = await getTrainStops(station_id);
+
+        if (error) {
+            res.status(500).json({
+                error: 'Internal Server Error',
+            });
+            return;
+        }
+
+        res.status(200).json({
+            station_id,
+            trains: data,
+        });
+    } catch (error) {
+        console.error('Error fetching train stops:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
+
 
 app.get('api/wallets/:wallet_id', async (req, res) =>{
     const { wallet_id } = req.params;
@@ -45,3 +83,4 @@ app.listen(port, () =>{
     console.log('Server is running on ' + port);
     console.log(`Listening on http://localhost:${port}/`);
 });
+
