@@ -97,65 +97,125 @@ const getWallet = async (wallet_id) =>{
         }
     }
 }
-
 const getStations = async () => {
-  try {
-    const [data] = await pool.query(`SELECT * FROM stations;`);
-    return {
-      data,
-      error: null,
-    };
-  } catch (error) {
-    return {
-      data: null,
-      error: error.code,
-    };
-  }
-};
-
-const updateBalance = async (recharge, wallet_id) =>{
     try {
-        const [data] = await pool.query(`UPDATE wallets SET balance = balance + ? WHERE wallet_id = ?;`, [recharge, wallet_id]);
+      const [data] = await pool.query(`SELECT * FROM stations;`);
+      return {
+        data,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error.code,
+      };
+    }
+  };
+  
+  const getTrainStops = async (stationId) => {
+    try {
+      const [data] = await pool.query(
+        `
+                SELECT train_stops.train_id, arrival_time, departure_time
+                FROM train_stops
+                JOIN trains ON train_stops.train_id = trains.train_id
+                WHERE station_id = ?
+                ORDER BY IFNULL(departure_time, '23:59') ASC, IFNULL(arrival_time, '23:59') ASC, trains.train_id ASC;
+            `,
+        [stationId]
+      );
+      return {
+        data,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error.code,
+      };
+    }
+  };
+
+
+const insertUser = async (user_id, user_name, balance) =>{
+    try{
+        const [ { insertId } ] = await pool.query(`INSERT INTO users VALUES(?, ?, ?);`,[user_id, user_name, balance]);
+        const [ users ] = await pool.query(`SELECT * FROM users WHERE user_id = ? ;`, [ insertId ]);
         return {
-          data,
-          error: null,
-        };
-      } catch (error) {
+            user: users[0],
+            error: null
+        }
+    } catch(error){
         return {
-          data: null,
-          error: error.code,
-        };
-      }
+            user: null,
+            error: error.code
+        }
+    }
+}
+const insertStation = async (station_id,station_name,longitude,latitude) =>{
+    try{
+        const [ { insertId } ] = await pool.query(`INSERT INTO stations VALUES(?, ?, ?, ?);`,[station_id,station_name,longitude,latitude]);
+        const [ stations ] = await pool.query(`SELECT * FROM stations WHERE station_id = ? ;`, [ insertId ]);
+        console.log(insertId);
+        return {
+            station: stations[0],
+            error: null
+        }
+    } catch(error){
+        return {
+            station: null,
+            error: error.code
+        }
+    }
 }
 
-const getTrainStops = async (stationId) => {
-  try {
-    const [data] = await pool.query(
-      `
-              SELECT train_stops.train_id, arrival_time, departure_time
-              FROM train_stops
-              JOIN trains ON train_stops.train_id = trains.train_id
-              WHERE station_id = ?
-              ORDER BY IFNULL(departure_time, '23:59') ASC, IFNULL(arrival_time, '23:59') ASC, trains.train_id ASC;
-          `,
-      [stationId]
-    );
-    return {
-      data,
-      error: null,
-    };
-  } catch (error) {
-    return {
-      data: null,
-      error: error.code,
-    };
-  }
+const insertTicket = async (wallet_id, time_after, station_from, station_to) => {
+    try {
+        // Insert the ticket into the database
+        const [result] = await pool.query('INSERT INTO tickets (wallet_id, time_after, station_from, station_to) VALUES (?, ?, ?, ?)', [wallet_id, time_after, station_from, station_to]);
+        const ticketId = result.insertId;
+
+        // Fetch the inserted ticket from the database
+        const [ticket] = await pool.query('SELECT * FROM tickets WHERE ticket_id = ?', [ticketId]);
+        
+        // Fetch the wallet balance
+        const [wallet] = await pool.query('SELECT balance FROM wallets WHERE wallet_id = ?', [wallet_id]);
+
+        // Fetch the list of stations in order of visits
+        const [stations] = await pool.query('SELECT * FROM train_stops WHERE train_id = (SELECT train_id FROM train_stops WHERE stop_id = ?) ORDER BY stop_id ASC', [station_from]);
+
+        // Format the stations data
+        const formattedStations = stations.map(station => ({
+            station_id: station.station_id,
+            train_id: station.train_id,
+            arrival_time: station.arrival_time,
+            departure_time: station.departure_time
+        }));
+
+        // Add null arrival time for the first station and null departure time for the last station
+        formattedStations[0].arrival_time = null;
+        formattedStations[formattedStations.length - 1].departure_time = null;
+        console.log(formattedStations);
+
+        return {
+            ticket_id: ticketId,
+            wallet_id: wallet_id,
+            balance: wallet[0].balance,
+            stations: formattedStations
+        };
+    } catch (error) {
+        return { ticket_id: null, error: error.message };
+    }
 };
 
+
+
 export {
-  createDatabase,
-  getStations,
-  getTrainStops,
-  getWallet,
-  updateBalance
-};
+    getStations,
+    getWallet,
+    insertUser,
+    insertStation,
+    getTrainStops,
+    insertTicket
+}
+
