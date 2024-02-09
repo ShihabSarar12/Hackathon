@@ -1,19 +1,19 @@
-import mysql from 'mysql2';
-import dotenv from 'dotenv';
+import mysql from "mysql2";
+import dotenv from "dotenv";
 
 dotenv.config();
-const pool = mysql.createPool({
+const pool = mysql
+  .createPool({
     host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DB
-}).promise();
+    database: process.env.MYSQL_DB,
+  })
+  .promise();
 
 const createDatabase = async () => {
     const dropdb = await pool.query('DROP DATABASE IF EXISTS ??', [process.env.MYSQL_DB]);
     const createdb = await pool.query('CREATE DATABASE IF NOT EXISTS ??', [process.env.MYSQL_DB]);
-    
-    // Create stations table
     const stations = await pool.query(`
         CREATE TABLE stations (
             station_id INT NOT NULL AUTO_INCREMENT,
@@ -23,8 +23,6 @@ const createDatabase = async () => {
             PRIMARY KEY (station_id)
         )
     `);
-    
-    // Create users table
     const users = await pool.query(`
         CREATE TABLE users (
             user_id INT NOT NULL AUTO_INCREMENT,
@@ -33,8 +31,6 @@ const createDatabase = async () => {
             PRIMARY KEY (user_id)
         )
     `);
-    
-    // Create wallets table
     const wallets = await pool.query(`
         CREATE TABLE wallets (
             wallet_id INT NOT NULL AUTO_INCREMENT,
@@ -44,8 +40,6 @@ const createDatabase = async () => {
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
-    
-    // Create trains table
     const trains = await pool.query(`
         CREATE TABLE trains (
             train_id INT NOT NULL AUTO_INCREMENT,
@@ -54,8 +48,6 @@ const createDatabase = async () => {
             PRIMARY KEY (train_id)
         )
     `);
-    
-    // Create tickets table
     const tickets = await pool.query(`
         CREATE TABLE tickets (
             ticket_id INT NOT NULL AUTO_INCREMENT,
@@ -69,8 +61,6 @@ const createDatabase = async () => {
             FOREIGN KEY (station_to) REFERENCES stations(station_id) ON DELETE CASCADE
         )
     `);
-    
-    // Create train_stops table
     const train_stops = await pool.query(`
         CREATE TABLE train_stops (
             stop_id INT NOT NULL AUTO_INCREMENT,
@@ -84,28 +74,18 @@ const createDatabase = async () => {
             FOREIGN KEY (station_id) REFERENCES stations(station_id) ON DELETE CASCADE
         )
     `);
-    
-    // Optionally, you can check for errors and handle them
 };
 
-const getStations = async () =>{   
-    try{
-        const [ data ] = await pool.query(`SELECT * FROM stations;`);
-        return {
-            data,
-            error: null
-        }
-    } catch(error){
-        return {
-            data: null,
-            error: error.code
-        }
-    }
-}
 
 const getWallet = async (wallet_id) =>{
     try{
         const [ data ] = await pool.query(`SELECT * FROM wallets INNER JOIN users ON wallets.user_id = users.user_id WHERE wallet_id = ?;`, [ wallet_id ]);
+        if(data.length === 0){
+            return {
+                data: null,
+                error: null
+            }
+        }
         return {
             data,
             error: null
@@ -117,6 +97,45 @@ const getWallet = async (wallet_id) =>{
         }
     }
 }
+const getStations = async () => {
+    try {
+      const [data] = await pool.query(`SELECT * FROM stations;`);
+      return {
+        data,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error.code,
+      };
+    }
+  };
+  
+  const getTrainStops = async (stationId) => {
+    try {
+      const [data] = await pool.query(
+        `
+                SELECT train_stops.train_id, arrival_time, departure_time
+                FROM train_stops
+                JOIN trains ON train_stops.train_id = trains.train_id
+                WHERE station_id = ?
+                ORDER BY IFNULL(departure_time, '23:59') ASC, IFNULL(arrival_time, '23:59') ASC, trains.train_id ASC;
+            `,
+        [stationId]
+      );
+      return {
+        data,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error.code,
+      };
+    }
+  };
+
 
 const insertUser = async (user_id, user_name, balance) =>{
     try{
@@ -150,9 +169,53 @@ const insertStation = async (station_id,station_name,longitude,latitude) =>{
     }
 }
 
+const insertTicket = async (wallet_id, time_after, station_from, station_to) => {
+    try {
+        // Insert the ticket into the database
+        const [result] = await pool.query('INSERT INTO tickets (wallet_id, time_after, station_from, station_to) VALUES (?, ?, ?, ?)', [wallet_id, time_after, station_from, station_to]);
+        const ticketId = result.insertId;
+
+        // Fetch the inserted ticket from the database
+        const [ticket] = await pool.query('SELECT * FROM tickets WHERE ticket_id = ?', [ticketId]);
+        
+        // Fetch the wallet balance
+        const [wallet] = await pool.query('SELECT balance FROM wallets WHERE wallet_id = ?', [wallet_id]);
+
+        // Fetch the list of stations in order of visits
+        const [stations] = await pool.query('SELECT * FROM train_stops WHERE train_id = (SELECT train_id FROM train_stops WHERE stop_id = ?) ORDER BY stop_id ASC', [station_from]);
+
+        // Format the stations data
+        const formattedStations = stations.map(station => ({
+            station_id: station.station_id,
+            train_id: station.train_id,
+            arrival_time: station.arrival_time,
+            departure_time: station.departure_time
+        }));
+
+        // Add null arrival time for the first station and null departure time for the last station
+        formattedStations[0].arrival_time = null;
+        formattedStations[formattedStations.length - 1].departure_time = null;
+        console.log(formattedStations);
+
+        return {
+            ticket_id: ticketId,
+            wallet_id: wallet_id,
+            balance: wallet[0].balance,
+            stations: formattedStations
+        };
+    } catch (error) {
+        return { ticket_id: null, error: error.message };
+    }
+};
+
+
+
 export {
     getStations,
     getWallet,
     insertUser,
-    insertStation
+    insertStation,
+    getTrainStops,
+    insertTicket
 }
+
