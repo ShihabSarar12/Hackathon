@@ -11,7 +11,7 @@ const pool = mysql.createPool({
 
 const createDatabase = async () =>{
     const dropdb = await pool.query(`DROP DATABASE IF EXISTS ??;`, [ process.env.MYSQL_DB ]);
-    const  createdb = await pool.query('CREATE DATABASE IF NOT EXISTS ??;',[ process.env.MYSQL_DB ]);
+    const createdb = await pool.query('CREATE DATABASE IF NOT EXISTS ??;',[ process.env.MYSQL_DB ]);
     const stations = await pool.query(`CREATE TABLE stations (
         station_id INT NOT NULL AUTO_INCREMENT,
         station_name VARCHAR(100) NOT NULL,

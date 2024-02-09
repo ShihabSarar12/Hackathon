@@ -9,9 +9,9 @@ app.use(cors());
 app.use(express.json());
 
 const port = process.env.SERVER_PORT || 8080;
-const initializeDatabase = async () =>{
-    const response = await createDatabase();
-}
+// const initDb = async () =>{
+//     const response = await createDatabase();
+// }
 
 app.get('/api/stations', async (req, res) =>{
     const { data, error } = await getStations();
