@@ -14,6 +14,8 @@ const initializeDatabase = async () =>{
     const response = await createDatabase();
 }
 
+initializeDatabase();
+
 
 app.get('/api/stations', async (req, res) =>{
     const { data, error } = await getStations();
