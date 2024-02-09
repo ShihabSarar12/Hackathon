@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { getStations, getWallet, getTrainStops} from './database.js';
+import { getStations, getWallet, getTrainStops, updateBalance} from './database.js';
 
 dotenv.config();
 const app = express();
@@ -71,7 +71,7 @@ app.get('/api/wallets/:wallet_ID', async (req, res) =>{
 app.put('/api/wallets/:wallet_ID', async (req, res) =>{
     const { wallet_ID } = req.params;
     const { recharge } = req.body;
-
+    const { data, error } = await updateBalance(recharge, wallet_ID);
 });
 
 app.listen(port, () =>{

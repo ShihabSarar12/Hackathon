@@ -156,5 +156,6 @@ export {
   createDatabase,
   getStations,
   getTrainStops,
-  getWallet
+  getWallet,
+  updateBalance
 };
