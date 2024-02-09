@@ -113,6 +113,21 @@ const getStations = async () => {
   }
 };
 
+const updateBalance = async (recharge, wallet_id) =>{
+    try {
+        const [data] = await pool.query(`UPDATE wallets SET balance = balance + ? WHERE wallet_id = ?;`, [recharge, wallet_id]);
+        return {
+          data,
+          error: null,
+        };
+      } catch (error) {
+        return {
+          data: null,
+          error: error.code,
+        };
+      }
+}
+
 const getTrainStops = async (stationId) => {
   try {
     const [data] = await pool.query(

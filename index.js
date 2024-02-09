@@ -43,7 +43,7 @@ app.get('/api/stations/:station_id/trains', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching train stops:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Internal Server Error'});
     }
 });
 
@@ -66,6 +66,12 @@ app.get('/api/wallets/:wallet_ID', async (req, res) =>{
         }
     });
     return;
+});
+
+app.put('/api/wallets/:wallet_ID', async (req, res) =>{
+    const { wallet_ID } = req.params;
+    const { recharge } = req.body;
+
 });
 
 app.listen(port, () =>{
