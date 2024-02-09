@@ -1,7 +1,7 @@
 import express, { json } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { getStations, getWallet, insertUser } from './database.js';
+import { getStations, getWallet, insertStation, insertUser } from './database.js';
 
 dotenv.config();
 const app = express();
@@ -19,6 +19,18 @@ app.get('/api/stations', async (req, res) =>{
         stations: data
     });
 });
+app.post('/api/stations', async (req, res) =>{
+    const {station_id,station_name,longitude,latitude} = req.body;
+    const { station, error } = await insertStation(station_id,station_name,longitude,latitude);
+    if(error){
+        res.status(404),json({
+            message: `${error}: Error occured!`
+        })
+        return;
+    }
+    console.log( station);
+    res.status(200).json( station);
+});
 
 app.post('/api/users', async (req, res) =>{
     const { user_id, user_name, balance } = req.body;
@@ -29,6 +41,7 @@ app.post('/api/users', async (req, res) =>{
         })
         return;
     }
+    console.log(user);
     res.status(200).json(user);
 });
 

@@ -133,9 +133,26 @@ const insertUser = async (user_id, user_name, balance) =>{
         }
     }
 }
+const insertStation = async (station_id,station_name,longitude,latitude) =>{
+    try{
+        const [ { insertId } ] = await pool.query(`INSERT INTO stations VALUES(?, ?, ?, ?);`,[station_id,station_name,longitude,latitude]);
+        const [ stations ] = await pool.query(`SELECT * FROM stations WHERE station_id = ? ;`, [ insertId ]);
+        console.log(insertId);
+        return {
+            station: stations[0],
+            error: null
+        }
+    } catch(error){
+        return {
+            station: null,
+            error: error.code
+        }
+    }
+}
 
 export {
     getStations,
     getWallet,
-    insertUser
+    insertUser,
+    insertStation
 }
