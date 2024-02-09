@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { getStations, getWallet, getTrainStops, updateBalance} from './database.js';
+import { getStations, getWallet, getTrainStops, updateBalance, createDatabase} from './database.js';
 
 dotenv.config();
 const app = express();
@@ -15,6 +15,12 @@ const initializeDatabase = async () =>{
 }
 
 initializeDatabase();
+
+app.get('/',()=>{
+    res.status(200).json({
+        message: 'Connected!'
+    })
+})
 
 
 app.get('/api/stations', async (req, res) =>{
